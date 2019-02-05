@@ -1,3 +1,8 @@
+# TL;DR;
+
+An even shorter version for quickest go through.
+
+
 
 # Chapter 2: Creating and destroying objects
 
@@ -809,8 +814,8 @@ Recipe for high quality `equals`
 
 1. Use the `==` operator to check if the argument is a reference to this object. If so, return true. This is just a performance optimization, but one that is worth doing if the comparison is potentially expensive. For primitive fields whose type is not `float` or `double`, use the `==` operator for comparisons; for object reference fields, invoke the `equals` method recursively; for `float` fields, use the `Float.compare` method; and for `double` fields, use `Double.compare`.
 2. Use the `instanceof` operator to check if the argument has the correct type.
-  If not, return false.
-  If type is an interface, you must access the argument’s fields via interface methods; if the type is a class, you may be able to access the fields directly
+    If not, return false.
+    If type is an interface, you must access the argument’s fields via interface methods; if the type is a class, you may be able to access the fields directly
 3. Cast the argument to the correct type.
 4. For each “significant” field in the class, check if that field of the argument matches the corresponding field of this object.
 
@@ -830,29 +835,133 @@ Performance of `equals` is effected by order of comparison, therefore compare le
 
 
 
-*   Always override `hashCode`  when overriding `equals`
+* Always override `hashCode`  when overriding `equals`
 
-*   Don't be too clever. E.g. `File` class should not equate symbolic links of same files.
+* Don't be too clever. E.g. `File` class should not equate symbolic links of same files.
 
-*   Don't use another type in equals declaration like following
+* Don't use another type in equals declaration like following
 
-    ```java
-    public boolean equals(MyObject obj) // Note 'MyObject' here instead of 'Object'
-    {
-      ...
+  ```java
+  public boolean equals(MyObject obj) // Note 'MyObject' here instead of 'Object'
+  {
+    ...
+  }
+  ```
+
+  Use `@Override` notation (item 36) to avoid this mistake.
+
+
+
+A sample on how to correctly implement equals looks like following
+
+```java
+public final class PhoneNumber {
+    private final short areaCode;
+    private final short prefix;
+    private final short lineNumber;
+    
+    // ...
+    
+    @Override public boolean equals(Object o) {
+        if (o == this)
+            return true;
+        if (!(o instanceof PhoneNumber))
+            return false;
+
+        PhoneNumber pn = (PhoneNumber)o;
+
+        return pn.lineNumber == lineNumber
+                && pn.prefix == prefix
+                && pn.areaCode == areaCode;
     }
-    ```
+}
+```
 
-    Use `@Override` notation (item 36) to avoid this mistake.
+
 
 ---
 
 ## Item 9: Always override `hashCode` when  you override `equals`
 
-The equal objects must have equal hash codes.
+**The equal objects must have equal hash codes**.
 
 *   `hashCode` must return same integer on multiple invocations of within same execution of application if information used for `equals` is not changed.
 *   If two objects are equal according to `equals`, than `hashCode` must also return same integer for both.
 *   For unequal objects, hashCode is not required to be unequal. However, it can improve performance of hash tables.
-*   ​
 
+
+
+A good hash function
+
+```java
+@Override public int hashCode() {
+    int result = 17; // an arbitary number
+    // for any field f
+    // double -> Double.doubleToLongBits(f) -> (int) (f ^ (f >>> 32))
+    // float -> Float.floatToIntBits(f)
+    // byte, char, short, int -> (int)f
+    // long -> (int) (f ^ (f >>> 32))
+    // boolean -> 1 || 0
+    // null -> 0
+    // use on each item of Array, or use Array.hashCode()
+    
+    result = 31 * result + areaCode;
+    result = 31 * result + prefix;
+    result = 31 * result + lineNumber;
+    
+    return result;
+}
+```
+
+**Consider caching the hash code if computing it is expensive. Use lazy initialization.**
+
+```java
+private volatile int hashCode; // (See Item 71)
+@Override public int hashCode() {
+    int result = hashCode;
+    if(result == 0) {
+    	result = 31 * result + areaCode;
+        result = 31 * result + prefix;
+        result = 31 * result + lineNumber;
+        hashCode = result;
+    }
+    return result;
+}
+```
+
+**Do not exclude significant parts of object from hashing function for performance.** It will slow down large collections if they differ in ignored parts.
+
+
+
+## Item 10: Always override `toString`
+
+**Providing a good `toString` implementation makes your class much more pleasant to use**
+
+Makes it easier to use and debug when passed to print method
+
+**When practical, the `toString` method should return *all* of the interesting information contained in the object**
+
+**Consider specifying return value format** for documentation for *value classes* for documentation. If you do, also its good to provide a static factory or constructor which translate object to and from its String representation.
+
+```java
+/**
+* Returns a brief description of this potion. The exact details
+* of the representation are unspecified and subject to change,
+* but the following may be regarded as typical:
+*
+* "[Potion #9: type=love, smell=turpentine, look=india ink]"
+*/
+@Override public String toString() { ... }
+```
+
+Everything returned as string should also be accessible programmatically. It will force users to always use toString to get that information otherwise.
+
+## Item 11: Override clone judiciously
+
+// TODO: After item 18
+
+
+
+## Item 12: Consider implementing `Comparable`
+
+By implementing `Comparable`, it indicates that its instances have a natural ordering.  
